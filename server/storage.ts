@@ -7,6 +7,10 @@ import {
   TeamStanding, EventResult,
   MEDALS, POINTS, MedalType
 } from "@shared/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+
+const MemoryStore = createMemoryStore(session);
 
 export interface IStorage {
   // User methods
@@ -47,6 +51,9 @@ export interface IStorage {
   
   // Initialize data
   initializeData(): Promise<void>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -62,6 +69,8 @@ export class MemStorage implements IStorage {
   private _resultIdCounter: number;
   private _userIdCounter: number;
   
+  public sessionStore: session.Store;
+  
   constructor() {
     this._teams = new Map();
     this._categories = new Map();
@@ -74,6 +83,10 @@ export class MemStorage implements IStorage {
     this._eventIdCounter = 1;
     this._resultIdCounter = 1;
     this._userIdCounter = 1;
+    
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    });
   }
   
   // User methods
@@ -259,15 +272,17 @@ export class MemStorage implements IStorage {
   
   // Initialize data
   async initializeData(): Promise<void> {
-    // Create admin user
+    // Create admin user with hashed password
     if (!(await this.getUserByUsername("admin"))) {
+      // For initial setup, use a plain password
+      // In a production environment, this would be hashed properly
       await this.createUser({ username: "admin", password: "admin" });
     }
     
     // Create teams
     const teamData = [
-      { name: "Royal Blue Dragons", color: "royal" },
-      { name: "Ninja Turquoise", color: "turquoise" },
+      { name: "Royal Blue Dragons", color: "dragon" },
+      { name: "Ninja Turquoise", color: "ninja" },
       { name: "Green Pythons", color: "python" },
       { name: "Yellow Hornets", color: "hornet" },
       { name: "Orange Jaguars", color: "jaguar" },
@@ -367,6 +382,20 @@ export class MemStorage implements IStorage {
           });
         }
       }
+    }
+    
+    // Create admin user if it doesn't exist
+    const adminUsername = "admin";
+    const existingAdmin = await this.getUserByUsername(adminUsername);
+    
+    if (!existingAdmin) {
+      await this.createUser({
+        username: adminUsername,
+        password: "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447.f7d8805c1ea339b3f805dc1cfe3e077e", // "admin123"
+        email: "admin@example.com",
+        name: "Administrator"
+      });
+      console.log("Admin user created with username 'admin' and password 'admin123'");
     }
   }
 }

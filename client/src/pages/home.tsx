@@ -6,9 +6,20 @@ import AdminPanel from "@/components/admin-panel";
 import Footer from "@/components/footer";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const { user } = useAuth();
+  
+  // Update admin status when user login state changes
+  useEffect(() => {
+    if (user) {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
+  }, [user]);
   
   // Dispatch an event when data is updated to update last updated timestamp
   useEffect(() => {

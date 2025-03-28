@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { MEDALS, POINTS, MedalType } from "@shared/schema";
+import { setupAuth } from "./auth";
 
 // Define validation schema for update request
 const updateResultSchema = z.object({
@@ -12,6 +13,8 @@ const updateResultSchema = z.object({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  setupAuth(app);
   // Get all teams
   app.get("/api/teams", async (req: Request, res: Response) => {
     const teams = await storage.getTeams();
@@ -45,8 +48,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.json(eventResults);
   });
 
-  // Update result for a team in an event
-  app.post("/api/results/update", async (req: Request, res: Response) => {
+  // Update result for a team in an event - requires authentication
+  app.post("/api/results/update", (req: Request, res: Response, next) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please log in as admin" });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
     try {
       const { teamId, eventId, medal } = updateResultSchema.parse(req.body);
       
