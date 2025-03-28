@@ -15,8 +15,9 @@ export function EventMedalList({ eventId }: EventMedalListProps) {
   const queryClient = useQueryClient();
   
   // Fetch results for this event
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: [`/api/events/${eventId}/results`],
+    refetchInterval: 2000, // Auto-refresh every 2 seconds
   });
   
   // Set event results when data changes

@@ -62,6 +62,7 @@ export default function AdminPanel() {
   // Query to check if results are published
   const { data: publicationStatus } = useQuery<{ published: boolean }>({
     queryKey: ["/api/results/published"],
+    refetchInterval: 2000, // Auto-refresh every 2 seconds
   });
   
   // We'll use this state variable for the Medal Management Tab
@@ -572,15 +573,25 @@ export default function AdminPanel() {
                       When enabled, all score updates will be immediately visible to viewers. When disabled, results will be hidden until you publish them.
                     </p>
                   </div>
-                  <div className="flex items-center">
-                    <Switch 
-                      id="publish-mode" 
-                      checked={publicationStatus?.published ?? false} 
-                      onCheckedChange={handlePublishToggle}
-                    />
-                    <Label htmlFor="publish-mode" className="ml-2">
-                      {publicationStatus?.published ? 'Published' : 'Hidden'}
-                    </Label>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center">
+                      <Switch 
+                        id="publish-mode" 
+                        checked={publicationStatus?.published ?? false} 
+                        onCheckedChange={handlePublishToggle}
+                      />
+                      <Label htmlFor="publish-mode" className="ml-2">
+                        {publicationStatus?.published ? 'Published' : 'Hidden'}
+                      </Label>
+                    </div>
+                    
+                    <Button
+                      onClick={handlePublishToggle}
+                      variant={publicationStatus?.published ? "destructive" : "default"}
+                      className="px-4"
+                    >
+                      {publicationStatus?.published ? 'Hide Results' : 'Publish Results'}
+                    </Button>
                   </div>
                 </div>
               </div>

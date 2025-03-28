@@ -23,11 +23,13 @@ interface ScoreboardProps {
 export default function Scoreboard({ isAdmin = false }: ScoreboardProps) {
   const { data: standings, isLoading } = useQuery<TeamStanding[]>({
     queryKey: ["/api/standings"],
+    refetchInterval: 3000, // Auto-refresh every 3 seconds
   });
   
   // Query to check if results are published
   const { data: publicationStatus } = useQuery<{ published: boolean }>({
     queryKey: ["/api/results/published"],
+    refetchInterval: 2000, // Auto-refresh every 2 seconds
   });
   
   // Determine if we should show the standings based on publication status and admin role
@@ -122,7 +124,11 @@ export default function Scoreboard({ isAdmin = false }: ScoreboardProps) {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {standings?.map((team, index) => (
                     <tr key={team.teamId} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {index > 0 && standings[index].totalPoints === standings[index-1].totalPoints 
+                          ? standings.findIndex(s => s.totalPoints === team.totalPoints) + 1 
+                          : index + 1}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           {team.icon ? (
@@ -138,9 +144,30 @@ export default function Scoreboard({ isAdmin = false }: ScoreboardProps) {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{team.totalPoints}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.goldCount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.silverCount}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.bronzeCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <div className="w-5 h-5 rounded-full bg-yellow-400 flex items-center justify-center mr-1.5">
+                            <span className="text-yellow-800 text-xs font-bold">G</span>
+                          </div>
+                          {team.goldCount}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <div className="w-5 h-5 rounded-full bg-gray-300 flex items-center justify-center mr-1.5">
+                            <span className="text-gray-700 text-xs font-bold">S</span>
+                          </div>
+                          {team.silverCount}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div className="flex items-center">
+                          <div className="w-5 h-5 rounded-full bg-amber-700 flex items-center justify-center mr-1.5">
+                            <span className="text-amber-100 text-xs font-bold">B</span>
+                          </div>
+                          {team.bronzeCount}
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
