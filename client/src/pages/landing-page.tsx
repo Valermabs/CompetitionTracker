@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import arcuBannerImage from "@assets/486590227_1056649309817046_2963718361638780329_n.jpg";
+import arcuBannerImage from "@assets/486834526_1056649299817047_3489486387045719830_n.jpg";
 
 export default function LandingPage() {
   return (
@@ -53,7 +53,7 @@ export default function LandingPage() {
             </svg>
           </a>
         </div>
-        <div>© {new Date().getFullYear()} USTP Claveria - University Student Government</div>
+        <div>© {new Date().getFullYear()} Val Irvin F. Mabayo</div>
       </div>
     </div>
   );
