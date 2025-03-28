@@ -14,6 +14,11 @@ export function EventMedalList({ eventId }: EventMedalListProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Get teams data for displaying non-winners and no-entries
+  const { data: teams } = useQuery({
+    queryKey: ["/api/teams"],
+  });
+  
   // Fetch results for this event
   const { data, isLoading, refetch } = useQuery({
     queryKey: [`/api/events/${eventId}/results`],
@@ -170,6 +175,45 @@ export function EventMedalList({ eventId }: EventMedalListProps) {
           )}
         </div>
       </div>
+
+      {/* Non-Winner and No Entry Results */}
+      {eventResult?.results && eventResult.results.filter((r: any) => r.medal === "non_winner" || r.medal === "no_entry").length > 0 && (
+        <div className="mt-4">
+          <h5 className="text-sm font-medium mb-2">Other Participants</h5>
+          <div className="space-y-2">
+            {eventResult.results
+              .filter((r: any) => r.medal === "non_winner" || r.medal === "no_entry")
+              .map((result: any) => {
+                const team = result.teamId ? teams?.find((t: any) => t.id === result.teamId) : null;
+                if (!team) return null;
+                
+                return (
+                  <div key={result.id} className="flex items-center justify-between bg-gray-50 p-2 rounded">
+                    <div className="flex items-center">
+                      <div 
+                        className="w-3 h-3 rounded-full mr-1" 
+                        style={{ backgroundColor: team.color }}
+                      ></div>
+                      <span className="text-sm">{team.name}</span>
+                      <span className="ml-2 text-xs text-gray-500">
+                        ({result.medal === "non_winner" ? "Non-Winner" : "No Entry"})
+                      </span>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => deleteResultMutation.mutate({ resultId: result.id })}
+                    >
+                      <Trash className="h-3 w-3 mr-1" />
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
