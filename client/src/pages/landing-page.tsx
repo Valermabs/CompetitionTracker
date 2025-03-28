@@ -44,18 +44,6 @@ export default function LandingPage() {
       {/* Footer */}
       <div className="absolute bottom-4 z-10 flex flex-col items-center">
         <div className="bg-black/50 backdrop-blur-sm px-6 py-3 rounded-full border border-white/20 shadow-lg">
-          <div className="flex items-center space-x-4 mb-1">
-            <a href="https://www.facebook.com/USTP.Claveria.Official" target="_blank" rel="noopener noreferrer" className="text-blue-300 hover:text-blue-200 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 8h-3v4h3v12h5v-12h3.642l.358-4h-4v-1.667c0-.955.192-1.333 1.115-1.333h2.885v-5h-3.808c-3.596 0-5.192 1.583-5.192 4.615v3.385z"/>
-              </svg>
-            </a>
-            <a href="mailto:claveria.usg@ustp.edu.ph" className="text-blue-300 hover:text-blue-200 transition-colors">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </a>
-          </div>
           <div className="text-white/90 text-sm font-medium">© {new Date().getFullYear()} Val Irvin F. Mabayo</div>
         </div>
       </div>
