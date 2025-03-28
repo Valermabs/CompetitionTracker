@@ -217,6 +217,7 @@ export class MemStorage implements IStorage {
     this._results.set(id, result);
     return result;
   }
+  
   async updateResult(id: number, medal: MedalType, points: number): Promise<Result | undefined> {
     const result = this._results.get(id);
     if (!result) return undefined;

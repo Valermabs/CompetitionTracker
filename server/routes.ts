@@ -77,49 +77,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // We've removed the unique medal validation to allow each team to win multiple medals
       // This is because each team can have 3 representatives in an event
       
-      // Get existing result or create a new one
-      const existingResult = await storage.getResultByTeamAndEvent(teamId, eventId);
+      // Create a new result (allowing multiple medals per team per event)
+      const points = POINTS[medal as MedalType];
       
-      if (existingResult) {
-        // Update existing result
-        const points = POINTS[medal as MedalType];
-        const updatedResult = await storage.updateResult(existingResult.id, medal as MedalType, points);
-        
-        if (!updatedResult) {
-          return res.status(500).json({ message: "Failed to update result" });
-        }
-        
-        // Get updated standings to reflect changes
-        const updatedStandings = await storage.getTeamStandings();
-        const updatedEventResults = await storage.getEventResults(eventId);
-        
-        return res.json({ 
-          message: "Result updated successfully", 
-          result: updatedResult,
-          standings: updatedStandings,
-          eventResults: updatedEventResults
-        });
-      } else {
-        // Create a new result entry - this allows multiple medals per team
-        const points = POINTS[medal as MedalType];
-        const newResult = await storage.createResult({
-          teamId,
-          eventId,
-          medal: medal as MedalType,
-          points
-        });
-        
-        // Get updated standings to reflect changes
-        const updatedStandings = await storage.getTeamStandings();
-        const updatedEventResults = await storage.getEventResults(eventId);
-        
-        return res.json({ 
-          message: "Result created successfully", 
-          result: newResult,
-          standings: updatedStandings,
-          eventResults: updatedEventResults
-        });
-      }
+      // Create a new result entry
+      const newResult = await storage.createResult({
+        teamId,
+        eventId,
+        medal: medal as MedalType,
+        points
+      });
+      
+      // Get updated standings to reflect changes
+      const updatedStandings = await storage.getTeamStandings();
+      const updatedEventResults = await storage.getEventResults(eventId);
+      
+      return res.json({ 
+        message: "Result created successfully", 
+        result: newResult,
+        standings: updatedStandings,
+        eventResults: updatedEventResults
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid request data", errors: error.errors });
@@ -133,6 +111,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", async (req: Request, res: Response) => {
     const events = await storage.getEvents();
     return res.json(events);
+  });
+  
+  // Update team icon - requires authentication
+  app.post("/api/teams/:teamId/icon", (req: Request, res: Response, next) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please log in as admin" });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const teamId = parseInt(req.params.teamId);
+      if (isNaN(teamId)) {
+        return res.status(400).json({ message: "Invalid team ID" });
+      }
+      
+      const { icon } = req.body;
+      if (!icon || typeof icon !== 'string') {
+        return res.status(400).json({ message: "Icon data is required and must be a string" });
+      }
+      
+      // Get the team
+      const team = await storage.getTeam(teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      // Update the team with the new icon
+      const updatedTeam = await storage.updateTeamIcon(teamId, icon);
+      
+      return res.json({ 
+        message: "Team icon updated successfully", 
+        team: updatedTeam
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "Internal server error" });
+    }
   });
 
   const httpServer = createServer(app);

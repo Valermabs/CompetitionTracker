@@ -7,11 +7,13 @@ export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: text("name").notNull().unique(),
   color: text("color").notNull(),
+  icon: text("icon"),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
   name: true,
   color: true,
+  icon: true,
 });
 
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
