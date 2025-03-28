@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 
 export default function AuthPage() {
   const { user, isLoading, loginMutation } = useAuth();
@@ -31,6 +31,14 @@ export default function AuthPage() {
       {/* Auth Form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white dark:bg-gray-950">
         <div className="w-full max-w-md">
+          <div className="mb-4">
+            <Button variant="ghost" size="sm" asChild className="flex items-center gap-1">
+              <Link href="/">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Live Scores
+              </Link>
+            </Button>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>

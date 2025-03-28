@@ -28,7 +28,11 @@ export default function Header({ isAdmin, setIsAdmin }: HeaderProps) {
     <header className="bg-[#2563eb] text-white shadow-md">
       <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
         <div className="flex items-center mb-4 md:mb-0">
-          <h1 className="text-2xl font-bold">2025 USTP Claveria ArCu Days Live Scores</h1>
+          <Link href="/">
+            <h1 className="text-2xl font-bold hover:text-blue-200 transition-colors cursor-pointer">
+              2025 USTP Claveria ArCu Days Live Scores
+            </h1>
+          </Link>
         </div>
         <div className="flex space-x-4">
           {user ? (
