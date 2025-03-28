@@ -49,6 +49,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update result for a team in an event - requires authentication
+  // Delete a result (medal)
+  app.delete("/api/results/:resultId", (req: Request, res: Response, next) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please log in as admin" });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const resultId = parseInt(req.params.resultId);
+      if (isNaN(resultId)) {
+        return res.status(400).json({ message: "Invalid result ID" });
+      }
+      
+      // Get the result to verify it exists
+      const result = await storage.getResult(resultId);
+      if (!result) {
+        return res.status(404).json({ message: "Result not found" });
+      }
+      
+      // Delete the result
+      await storage.deleteResult(resultId);
+      
+      return res.json({ message: "Result deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting result:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Toggle result visibility
+  app.post("/api/results/publish", (req: Request, res: Response, next) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please log in as admin" });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const { publish } = req.body;
+      if (typeof publish !== 'boolean') {
+        return res.status(400).json({ message: "Publish flag must be a boolean" });
+      }
+      
+      // Update the publication setting
+      await storage.setResultsPublished(publish);
+      
+      return res.json({ 
+        message: publish ? "Results published successfully" : "Results hidden successfully",
+        published: publish
+      });
+    } catch (error) {
+      console.error("Error toggling result visibility:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  
+  // Add new event
+  app.post("/api/events", (req: Request, res: Response, next) => {
+    // Check if user is authenticated
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized - Please log in as admin" });
+    }
+    next();
+  }, async (req: Request, res: Response) => {
+    try {
+      const { name, categoryId } = req.body;
+      if (!name || !categoryId) {
+        return res.status(400).json({ message: "Event name and category ID are required" });
+      }
+      
+      // Check if the category exists
+      const category = await storage.getCategory(categoryId);
+      if (!category) {
+        return res.status(404).json({ message: "Category not found" });
+      }
+      
+      // Create the new event
+      const event = await storage.createEvent({ name, categoryId });
+      
+      return res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   app.post("/api/results/update", (req: Request, res: Response, next) => {
     // Check if user is authenticated
     if (!req.isAuthenticated()) {
@@ -111,6 +198,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events", async (req: Request, res: Response) => {
     const events = await storage.getEvents();
     return res.json(events);
+  });
+  
+  // Get publication status of results
+  app.get("/api/results/published", async (req: Request, res: Response) => {
+    const published = await storage.getResultsPublished();
+    return res.json({ published });
   });
   
   // Update team icon - requires authentication

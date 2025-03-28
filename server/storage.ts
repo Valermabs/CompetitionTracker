@@ -45,6 +45,11 @@ export interface IStorage {
   getResultsByTeam(teamId: number): Promise<Result[]>;
   createResult(result: InsertResult): Promise<Result>;
   updateResult(id: number, medal: MedalType, points: number): Promise<Result | undefined>;
+  deleteResult(id: number): Promise<void>;
+  
+  // Publication settings
+  setResultsPublished(publish: boolean): Promise<void>;
+  getResultsPublished(): Promise<boolean>;
   
   // Computed data methods
   getTeamStandings(): Promise<TeamStanding[]>;
@@ -210,13 +215,13 @@ export class MemStorage implements IStorage {
     return Array.from(this._results.values()).filter(result => result.teamId === teamId);
   }
   
-  
   async createResult(insertResult: InsertResult): Promise<Result> {
     const id = this._resultIdCounter++;
     const result: Result = { ...insertResult, id };
     this._results.set(id, result);
     return result;
   }
+  
   async updateResult(id: number, medal: MedalType, points: number): Promise<Result | undefined> {
     const result = this._results.get(id);
     if (!result) return undefined;
@@ -224,6 +229,23 @@ export class MemStorage implements IStorage {
     const updatedResult: Result = { ...result, medal, points };
     this._results.set(id, updatedResult);
     return updatedResult;
+  }
+  
+  async deleteResult(id: number): Promise<void> {
+    if (this._results.has(id)) {
+      this._results.delete(id);
+    }
+  }
+  
+  // Results publication setting
+  private _resultsPublished: boolean = true;
+  
+  async setResultsPublished(publish: boolean): Promise<void> {
+    this._resultsPublished = publish;
+  }
+  
+  async getResultsPublished(): Promise<boolean> {
+    return this._resultsPublished;
   }
   
   // Computed data methods

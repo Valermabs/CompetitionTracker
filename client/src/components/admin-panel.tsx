@@ -19,8 +19,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { 
+  AlertCircle, 
+  CheckCircle2, 
+  Upload, 
+  Trash, 
+  PlusCircle,
+  Send,
+  Image
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 export default function AdminPanel() {
   const [selectedEvent, setSelectedEvent] = useState<string>("");
@@ -28,6 +41,10 @@ export default function AdminPanel() {
   const [selectedMedal, setSelectedMedal] = useState<string>("");
   const [updateSuccess, setUpdateSuccess] = useState(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [selectedTeamForIcon, setSelectedTeamForIcon] = useState<number | null>(null);
+  const [iconData, setIconData] = useState<string>("");
+  const [newEventName, setNewEventName] = useState<string>("");
+  const [newEventCategory, setNewEventCategory] = useState<string>("");
   
   const { data: categoriesWithEvents } = useQuery({
     queryKey: ["/api/categories"],
@@ -35,6 +52,11 @@ export default function AdminPanel() {
   
   const { data: teams } = useQuery({
     queryKey: ["/api/teams"],
+  });
+  
+  // Query to check if results are published
+  const { data: publicationStatus } = useQuery<{ published: boolean }>({
+    queryKey: ["/api/results/published"],
   });
   
   const queryClient = useQueryClient();
@@ -71,6 +93,105 @@ export default function AdminPanel() {
       if (error.message && error.message.includes("already assigned")) {
         setValidationMessage(error.message);
       }
+    }
+  });
+  
+  // Team icon update mutation
+  const updateTeamIconMutation = useMutation({
+    mutationFn: async ({ teamId, icon }: { teamId: number; icon: string }) => {
+      return apiRequest("POST", `/api/teams/${teamId}/icon`, { icon });
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+      setIconData("");
+      setSelectedTeamForIcon(null);
+      
+      toast({
+        title: "Team Icon Updated",
+        description: "The team icon has been updated successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update team icon. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Add new event mutation
+  const addEventMutation = useMutation({
+    mutationFn: async ({ name, categoryId }: { name: string; categoryId: number }) => {
+      return apiRequest("POST", "/api/events", { name, categoryId });
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      setNewEventName("");
+      setNewEventCategory("");
+      
+      toast({
+        title: "Event Added",
+        description: "The new event has been added successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add new event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Delete medal/result mutation
+  const deleteResultMutation = useMutation({
+    mutationFn: async ({ resultId }: { resultId: number }) => {
+      return apiRequest("DELETE", `/api/results/${resultId}`);
+    },
+    onSuccess: async () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/standings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
+      toast({
+        title: "Medal Removed",
+        description: "The medal has been removed successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove medal. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Publish results toggle mutation
+  const publishResultsMutation = useMutation({
+    mutationFn: async ({ publish }: { publish: boolean }) => {
+      return apiRequest("POST", "/api/results/publish", { publish });
+    },
+    onSuccess: async (data) => {
+      // Invalidate the publication status query to refresh it
+      queryClient.invalidateQueries({ queryKey: ["/api/results/published"] });
+      
+      const newState = !(publicationStatus?.published ?? false);
+      toast({
+        title: newState ? "Results Published" : "Results Hidden",
+        description: newState ? "Results are now visible to all viewers." : "Results are now hidden from viewers.",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update publication status. Please try again.",
+        variant: "destructive",
+      });
     }
   });
   
@@ -136,103 +257,302 @@ export default function AdminPanel() {
     }
   };
   
+  // Function to handle team icon upload
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setIconData(event.target.result as string);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  // Function to handle icon submit
+  const handleIconSubmit = () => {
+    if (!selectedTeamForIcon || !iconData) {
+      toast({
+        title: "Missing Data",
+        description: "Please select a team and upload an icon image.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    updateTeamIconMutation.mutate({ teamId: selectedTeamForIcon, icon: iconData });
+  };
+  
+  // Function to add a new event
+  const handleAddEvent = () => {
+    if (!newEventName || !newEventCategory) {
+      toast({
+        title: "Missing Data",
+        description: "Please provide an event name and select a category.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const categoryId = parseInt(newEventCategory);
+    addEventMutation.mutate({ name: newEventName, categoryId });
+  };
+  
+  // Function to toggle publishing of results
+  const handlePublishToggle = () => {
+    const newPublishState = !(publicationStatus?.published ?? false);
+    publishResultsMutation.mutate({ publish: newPublishState });
+    // No need to set local state, the query will refresh
+  };
+
   return (
     <section className="bg-white rounded-lg shadow-md overflow-hidden mb-10">
       <CardHeader className="px-6 py-4 bg-gray-50 border-b border-gray-200">
         <CardTitle className="text-xl font-bold text-gray-800">Admin Control Panel</CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold mb-4">Quick Score Update</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Event</label>
-              <Select value={selectedEvent} onValueChange={setSelectedEvent}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select an event" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categoriesWithEvents?.map(({ category, events }) => (
-                    <SelectGroup key={category.id}>
-                      <SelectLabel>{category.name}</SelectLabel>
-                      {events.map(event => (
-                        <SelectItem key={event.id} value={event.id.toString()}>
-                          {event.name}
+        <Tabs defaultValue="score" className="mb-6">
+          <TabsList className="mb-4">
+            <TabsTrigger value="score">Score Management</TabsTrigger>
+            <TabsTrigger value="teams">Team Icons</TabsTrigger>
+            <TabsTrigger value="events">Add Events</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
+          
+          {/* Score Management Tab */}
+          <TabsContent value="score">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Quick Score Update</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Event</label>
+                  <Select value={selectedEvent} onValueChange={setSelectedEvent}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select an event" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoriesWithEvents?.map(({ category, events }) => (
+                        <SelectGroup key={category.id}>
+                          <SelectLabel>{category.name}</SelectLabel>
+                          {events.map(event => (
+                            <SelectItem key={event.id} value={event.id.toString()}>
+                              {event.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Team</label>
+                  <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams?.map(team => (
+                        <SelectItem key={team.id} value={team.id.toString()}>
+                          {team.name}
                         </SelectItem>
                       ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Team</label>
-              <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a team" />
-                </SelectTrigger>
-                <SelectContent>
-                  {teams?.map(team => (
-                    <SelectItem key={team.id} value={team.id.toString()}>
-                      {team.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Select Medal</label>
-              <Select value={selectedMedal} onValueChange={setSelectedMedal}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select a medal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MEDAL_OPTIONS.map(option => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <div className="mt-4 flex items-center">
-            <Button 
-              onClick={handleUpdateScore}
-              disabled={!selectedEvent || !selectedTeam || !selectedMedal || updateScoreMutation.isPending}
-              className="px-4 py-2 bg-[#2563eb] text-white rounded-md hover:bg-blue-700"
-            >
-              {updateScoreMutation.isPending ? "Updating..." : "Update Score"}
-            </Button>
-            
-            {updateSuccess && (
-              <div className="flex items-center ml-4 text-sm font-medium text-green-600">
-                <CheckCircle2 className="h-4 w-4 mr-1" />
-                Score updated successfully!
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Select Medal</label>
+                  <Select value={selectedMedal} onValueChange={setSelectedMedal}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a medal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MEDAL_OPTIONS.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-        
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Medal Validation</h3>
-          <div className="bg-gray-50 rounded-md p-4">
-            <p className="text-sm text-gray-600 mb-2">
-              The system will automatically validate that only one Gold, one Silver, and one Bronze medal can be awarded per event.
-            </p>
+              
+              <div className="mt-4 flex items-center">
+                <Button 
+                  onClick={handleUpdateScore}
+                  disabled={!selectedEvent || !selectedTeam || !selectedMedal || updateScoreMutation.isPending}
+                  className="px-4 py-2 bg-[#2563eb] text-white rounded-md hover:bg-blue-700"
+                >
+                  {updateScoreMutation.isPending ? "Updating..." : "Update Score"}
+                </Button>
+                
+                {updateSuccess && (
+                  <div className="flex items-center ml-4 text-sm font-medium text-green-600">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    Score updated successfully!
+                  </div>
+                )}
+              </div>
+            </div>
             
-            {validationMessage && (
-              <Alert variant="destructive" className="mt-2 text-sm">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Validation Error</AlertTitle>
-                <AlertDescription>{validationMessage}</AlertDescription>
-              </Alert>
-            )}
-          </div>
-        </div>
+            {/* Medal Removal Section */}
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Remove Medals</h3>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <p className="text-sm text-gray-600 mb-4">
+                  If you need to remove a medal that was assigned incorrectly, go to the Event Categories section and click the "Remove" button next to the medal.
+                </p>
+              </div>
+            </div>
+            
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Medal Validation</h3>
+              <div className="bg-gray-50 rounded-md p-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  The system will automatically validate that only one Gold, one Silver, and one Bronze medal can be awarded per event.
+                </p>
+                
+                {validationMessage && (
+                  <Alert variant="destructive" className="mt-2 text-sm">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Validation Error</AlertTitle>
+                    <AlertDescription>{validationMessage}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Team Icons Tab */}
+          <TabsContent value="teams">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Team Icon Management</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Team</label>
+                  <Select value={selectedTeamForIcon?.toString() || ""} onValueChange={(value) => setSelectedTeamForIcon(parseInt(value))}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teams?.map(team => (
+                        <SelectItem key={team.id} value={team.id.toString()}>
+                          {team.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Upload Icon Image</label>
+                  <div className="flex items-center gap-2">
+                    <Input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleIconUpload}
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">Recommended square image (PNG or JPG)</p>
+                </div>
+              </div>
+              
+              {iconData && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                  <div className="w-16 h-16 rounded-full overflow-hidden border border-gray-200">
+                    <img src={iconData} alt="Icon preview" className="w-full h-full object-cover" />
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4">
+                <Button
+                  onClick={handleIconSubmit}
+                  disabled={!selectedTeamForIcon || !iconData || updateTeamIconMutation.isPending}
+                  className="px-4 py-2 bg-[#2563eb] text-white rounded-md hover:bg-blue-700"
+                >
+                  {updateTeamIconMutation.isPending ? "Uploading..." : "Upload Icon"}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Add Events Tab */}
+          <TabsContent value="events">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Add New Event</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Event Name</label>
+                  <Input 
+                    type="text" 
+                    value={newEventName} 
+                    onChange={(e) => setNewEventName(e.target.value)}
+                    placeholder="Enter event name"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Select Category</label>
+                  <Select value={newEventCategory} onValueChange={setNewEventCategory}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categoriesWithEvents?.map(({ category }) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <Button
+                  onClick={handleAddEvent}
+                  disabled={!newEventName || !newEventCategory || addEventMutation.isPending}
+                  className="px-4 py-2 bg-[#2563eb] text-white rounded-md hover:bg-blue-700"
+                >
+                  {addEventMutation.isPending ? "Adding..." : "Add Event"}
+                </Button>
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Settings Tab */}
+          <TabsContent value="settings">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Results Visibility</h3>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-800">Publish Results to Viewers</h4>
+                    <p className="text-xs text-gray-600 mt-1">
+                      When enabled, all score updates will be immediately visible to viewers. When disabled, results will be hidden until you publish them.
+                    </p>
+                  </div>
+                  <div className="flex items-center">
+                    <Switch 
+                      id="publish-mode" 
+                      checked={publicationStatus?.published ?? false} 
+                      onCheckedChange={handlePublishToggle}
+                    />
+                    <Label htmlFor="publish-mode" className="ml-2">
+                      {publicationStatus?.published ? 'Published' : 'Hidden'}
+                    </Label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </section>
   );

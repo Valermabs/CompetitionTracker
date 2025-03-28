@@ -18,7 +18,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Trash2
 } from "lucide-react";
 import { 
   Select,
@@ -76,6 +77,11 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
   
   const { data: teams } = useQuery<TeamData[]>({
     queryKey: ["/api/teams"],
+  });
+  
+  // Query to check if results are published
+  const { data: publicationStatus } = useQuery<{ published: boolean }>({
+    queryKey: ["/api/results/published"],
   });
   
   const [expandedCategories, setExpandedCategories] = useState<Record<number, boolean>>({});
@@ -145,6 +151,48 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
     }
   });
   
+  // Delete result/medal mutation
+  const deleteResultMutation = useMutation({
+    mutationFn: async ({ resultId }: { resultId: number }) => {
+      return apiRequest("DELETE", `/api/results/${resultId}`);
+    },
+    onSuccess: async (data) => {
+      const result = await data.json();
+      queryClient.invalidateQueries({ queryKey: ["/api/standings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      
+      // Update local event results state with the updated data
+      if (result.eventId) {
+        // Reload the event results to update the UI
+        try {
+          const response = await fetch(`/api/events/${result.eventId}/results`);
+          if (response.ok) {
+            const updatedEventResults = await response.json();
+            setEventResults(prev => ({
+              ...prev,
+              [result.eventId]: updatedEventResults
+            }));
+          }
+        } catch (error) {
+          console.error("Failed to refresh event results:", error);
+        }
+      }
+      
+      toast({
+        title: "Medal Removed",
+        description: "The medal has been removed successfully.",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to remove medal. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
   const toggleCategory = (categoryId: number) => {
     setExpandedCategories(prev => ({
       ...prev,
@@ -173,6 +221,13 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
     if (!medal) return;
     
     updateScoreMutation.mutate({ teamId, eventId, medal });
+  };
+  
+  // Handle deleting a result/medal
+  const handleDeleteResult = (resultId: number) => {
+    if (window.confirm("Are you sure you want to remove this medal? This action cannot be undone.")) {
+      deleteResultMutation.mutate({ resultId });
+    }
   };
   
   if (isLoading) {
@@ -268,20 +323,26 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                             </div>
                           ) : (
                             <div className="medal-display flex items-center space-x-2">
-                              {eventResult?.gold && (
-                                <span className={`text-xs px-2 py-1 rounded ${getMedalClass('gold')}`}>
-                                  {eventResult.gold.teamName}
-                                </span>
-                              )}
-                              {eventResult?.silver && (
-                                <span className={`text-xs px-2 py-1 rounded ${getMedalClass('silver')}`}>
-                                  {eventResult.silver.teamName}
-                                </span>
-                              )}
-                              {eventResult?.bronze && (
-                                <span className={`text-xs px-2 py-1 rounded ${getMedalClass('bronze')}`}>
-                                  {eventResult.bronze.teamName}
-                                </span>
+                              {(publicationStatus?.published || isAdmin) ? (
+                                <>
+                                  {eventResult?.gold && (
+                                    <span className={`text-xs px-2 py-1 rounded ${getMedalClass('gold')}`}>
+                                      {eventResult.gold.teamName}
+                                    </span>
+                                  )}
+                                  {eventResult?.silver && (
+                                    <span className={`text-xs px-2 py-1 rounded ${getMedalClass('silver')}`}>
+                                      {eventResult.silver.teamName}
+                                    </span>
+                                  )}
+                                  {eventResult?.bronze && (
+                                    <span className={`text-xs px-2 py-1 rounded ${getMedalClass('bronze')}`}>
+                                      {eventResult.bronze.teamName}
+                                    </span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-xs text-gray-500 italic">Results pending publication</span>
                               )}
                             </div>
                           )}
@@ -302,35 +363,50 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                                         </div>
                                         <span className="font-medium">{team.name}</span>
                                       </div>
-                                      <div className="flex justify-between items-center">
-                                        <Select 
-                                          onValueChange={(value) => handleMedalChange(event.id, team.id, value)}
-                                          value={selectedMedals[`${event.id}-${team.id}`] || result?.medal}
-                                        >
-                                          <SelectTrigger className="h-7 text-xs w-[120px]">
-                                            <SelectValue placeholder={result ? formatMedalName(result.medal) : "Select medal"} />
-                                          </SelectTrigger>
-                                          <SelectContent>
-                                            {MEDAL_OPTIONS.map(option => (
-                                              <SelectItem key={option.value} value={option.value}>
-                                                {option.label}
-                                              </SelectItem>
-                                            ))}
-                                          </SelectContent>
-                                        </Select>
-                                        <Button 
-                                          size="sm" 
-                                          variant="outline" 
-                                          className="h-7 text-xs"
-                                          onClick={() => handleUpdateScore(event.id, team.id)}
-                                          disabled={
-                                            (!selectedMedals[`${event.id}-${team.id}`] && !result) || 
-                                            (selectedMedals[`${event.id}-${team.id}`] === result?.medal) ||
-                                            updateScoreMutation.isPending
-                                          }
-                                        >
-                                          Update
-                                        </Button>
+                                      <div className="flex flex-col space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <Select 
+                                            onValueChange={(value) => handleMedalChange(event.id, team.id, value)}
+                                            value={selectedMedals[`${event.id}-${team.id}`] || result?.medal}
+                                          >
+                                            <SelectTrigger className="h-7 text-xs w-[120px]">
+                                              <SelectValue placeholder={result ? formatMedalName(result.medal) : "Select medal"} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {MEDAL_OPTIONS.map(option => (
+                                                <SelectItem key={option.value} value={option.value}>
+                                                  {option.label}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <Button 
+                                            size="sm" 
+                                            variant="outline" 
+                                            className="h-7 text-xs"
+                                            onClick={() => handleUpdateScore(event.id, team.id)}
+                                            disabled={
+                                              (!selectedMedals[`${event.id}-${team.id}`] && !result) || 
+                                              (selectedMedals[`${event.id}-${team.id}`] === result?.medal) ||
+                                              updateScoreMutation.isPending
+                                            }
+                                          >
+                                            Update
+                                          </Button>
+                                        </div>
+                                        
+                                        {result && ["gold", "silver", "bronze"].includes(result.medal) && (
+                                          <Button 
+                                            size="sm" 
+                                            variant="destructive" 
+                                            className="h-7 text-xs w-full flex items-center justify-center gap-1"
+                                            onClick={() => handleDeleteResult(result.id)}
+                                            disabled={deleteResultMutation.isPending}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                            Remove Medal
+                                          </Button>
+                                        )}
                                       </div>
                                     </div>
                                   );
