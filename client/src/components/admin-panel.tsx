@@ -49,6 +49,12 @@ export default function AdminPanel() {
   const [newEventName, setNewEventName] = useState<string>("");
   const [newEventCategory, setNewEventCategory] = useState<string>("");
   
+  // Bulk update state
+  const [selectedBulkEvent, setSelectedBulkEvent] = useState<string>("");
+  const [selectedBulkMedal, setSelectedBulkMedal] = useState<string>("");
+  const [selectedTeams, setSelectedTeams] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  
   // Get categories with events
   const { data: categoriesWithEvents } = useQuery({
     queryKey: ["/api/categories"],
@@ -451,6 +457,147 @@ export default function AdminPanel() {
                 This panel allows you to view and remove medals assigned to teams across all events. 
                 To assign medals, use the Score Management tab.
               </p>
+
+              {/* Bulk Medal Update Section */}
+              <div className="bg-gray-50 p-4 rounded-md mb-8 border">
+                <h4 className="font-medium text-gray-800 mb-3">Bulk Medal Update</h4>
+                <p className="text-sm text-gray-600 mb-4">
+                  Quickly assign Non-Winner or No Entry status to multiple teams at once.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Event</label>
+                    <Select value={selectedBulkEvent} onValueChange={setSelectedBulkEvent}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select an event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categoriesWithEvents?.map(({ category, events }) => (
+                          <SelectGroup key={category.id}>
+                            <SelectLabel>{category.name}</SelectLabel>
+                            {events.map(event => (
+                              <SelectItem key={event.id} value={event.id.toString()}>
+                                {event.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Medal Type</label>
+                    <Select value={selectedBulkMedal} onValueChange={setSelectedBulkMedal}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select medal type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="non_winner">Non-Winner (1 point)</SelectItem>
+                        <SelectItem value="no_entry">No Entry (0 points)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex items-end">
+                    <Button 
+                      onClick={() => {
+                        if (!selectedBulkEvent || !selectedBulkMedal || selectedTeams.length === 0) {
+                          toast({
+                            title: "Incomplete Form",
+                            description: "Please select an event, medal type, and at least one team",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+
+                        // Confirm before proceeding
+                        if (window.confirm(`Are you sure you want to assign ${selectedBulkMedal === 'non_winner' ? 'Non-Winner' : 'No Entry'} status to ${selectedTeams.length} teams?`)) {
+                          // Create a promise array to track all mutations
+                          const updatePromises = selectedTeams.map(teamId => {
+                            return updateScoreMutation.mutateAsync({ 
+                              teamId, 
+                              eventId: parseInt(selectedBulkEvent), 
+                              medal: selectedBulkMedal 
+                            });
+                          });
+                          
+                          // Execute all updates and provide feedback when complete
+                          Promise.all(updatePromises)
+                            .then(() => {
+                              toast({
+                                title: "Bulk Update Complete",
+                                description: `Successfully updated ${selectedTeams.length} teams`,
+                                variant: "default",
+                              });
+                              // Reset selections
+                              setSelectedTeams([]);
+                              setSelectAll(false);
+                            })
+                            .catch(error => {
+                              toast({
+                                title: "Error",
+                                description: "One or more updates failed. Please try again.",
+                                variant: "destructive",
+                              });
+                            });
+                        }
+                      }}
+                      disabled={!selectedBulkEvent || !selectedBulkMedal || selectedTeams.length === 0 || updateScoreMutation.isPending}
+                      className="w-full"
+                    >
+                      {updateScoreMutation.isPending ? "Updating..." : "Apply to Selected Teams"}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <h5 className="text-sm font-medium text-gray-700">Select Teams</h5>
+                    <div className="flex items-center space-x-2">
+                      <Switch 
+                        id="select-all"
+                        checked={selectAll} 
+                        onCheckedChange={(checked) => {
+                          setSelectAll(checked);
+                          if (checked && teams) {
+                            setSelectedTeams(teams.map(team => team.id));
+                          } else {
+                            setSelectedTeams([]);
+                          }
+                        }}
+                      />
+                      <Label htmlFor="select-all">Select All</Label>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 mt-2">
+                    {teams?.map(team => (
+                      <div 
+                        key={team.id} 
+                        className={`border rounded-md p-2 flex items-center space-x-2 cursor-pointer hover:bg-gray-50 ${
+                          selectedTeams.includes(team.id) ? 'bg-blue-50 border-blue-200' : ''
+                        }`}
+                        onClick={() => {
+                          setSelectedTeams(prev => 
+                            prev.includes(team.id) 
+                              ? prev.filter(id => id !== team.id)
+                              : [...prev, team.id]
+                          );
+                        }}
+                      >
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: team.color }}></div>
+                        <span className="text-sm">{team.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-2 text-xs text-gray-500">
+                    {selectedTeams.length} teams selected
+                  </div>
+                </div>
+              </div>
               
               <div className="space-y-8">
                 {categoriesWithEvents?.map(({ category, events }) => (

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { EventMedalList } from "@/components/event-medal-list";
 
 interface EventCategoriesProps {
   isAdmin: boolean;
@@ -335,66 +336,9 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                         {isAdmin && expandedEvents[event.id] && teams && (
                           <div className="admin-view">
                             <div className="bg-gray-50 rounded-md p-3">
-                              <h4 className="font-medium text-sm mb-2">Team Results</h4>
-                              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 text-xs">
-                                {teams.map(team => {
-                                  const result = eventResult?.results?.find(r => r.teamId === team.id);
-                                  return (
-                                    <div key={team.id} className="flex flex-col space-y-1 p-2 border rounded">
-                                      <div className="flex items-center space-x-1">
-                                        <div className="w-4 h-4 rounded-full flex items-center justify-center border border-gray-200 overflow-hidden">
-                                          <div className={`w-3 h-3 rounded-full ${getTeamDotColor(team.color)}`}></div>
-                                        </div>
-                                        <span className="font-medium">{team.name}</span>
-                                      </div>
-                                      <div className="flex flex-col space-y-2">
-                                        <div className="flex justify-between items-center">
-                                          <Select 
-                                            onValueChange={(value) => handleMedalChange(event.id, team.id, value)}
-                                            value={selectedMedals[`${event.id}-${team.id}`] || result?.medal}
-                                          >
-                                            <SelectTrigger className="h-7 text-xs w-[120px]">
-                                              <SelectValue placeholder={result ? formatMedalName(result.medal) : "Select medal"} />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                              {MEDAL_OPTIONS.map(option => (
-                                                <SelectItem key={option.value} value={option.value}>
-                                                  {option.label}
-                                                </SelectItem>
-                                              ))}
-                                            </SelectContent>
-                                          </Select>
-                                          <Button 
-                                            size="sm" 
-                                            variant="outline" 
-                                            className="h-7 text-xs"
-                                            onClick={() => handleUpdateScore(event.id, team.id)}
-                                            disabled={
-                                              (!selectedMedals[`${event.id}-${team.id}`] && !result) || 
-                                              (selectedMedals[`${event.id}-${team.id}`] === result?.medal) ||
-                                              updateScoreMutation.isPending
-                                            }
-                                          >
-                                            Update
-                                          </Button>
-                                        </div>
-                                        
-                                        {result && ["gold", "silver", "bronze"].includes(result.medal) && (
-                                          <Button 
-                                            size="sm" 
-                                            variant="destructive" 
-                                            className="h-7 text-xs w-full flex items-center justify-center gap-1"
-                                            onClick={() => handleDeleteResult(result.id)}
-                                            disabled={deleteResultMutation.isPending}
-                                          >
-                                            <Trash2 className="h-3 w-3" />
-                                            Remove Medal
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
+                              <EventMedalList eventId={event.id} />
+                              <div className="text-xs text-gray-500 mt-3 italic">
+                                To update medals, please use the Admin Panel above
                               </div>
                             </div>
                           </div>
