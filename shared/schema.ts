@@ -83,7 +83,7 @@ export const POINTS = {
   [MEDALS.NO_ENTRY]: 0,
 } as const;
 
-export type MedalType = keyof typeof POINTS;
+export type MedalType = "gold" | "silver" | "bronze" | "non_winner" | "no_entry";
 
 // Standings type - represents the aggregated team standings
 export type TeamStanding = {
@@ -110,11 +110,15 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  email: text("email").notNull(),
+  name: text("name").notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  email: true,
+  name: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

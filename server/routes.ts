@@ -74,18 +74,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For validation, check existing medals in this event
       const eventResults = await storage.getResultsByEvent(eventId);
       
-      // If setting a medal (gold, silver, bronze), validate that it's not already assigned
-      if ([MEDALS.GOLD, MEDALS.SILVER, MEDALS.BRONZE].includes(medal)) {
-        const existingMedal = eventResults.find(r => 
-          r.medal === medal && r.teamId !== teamId
-        );
-        
-        if (existingMedal) {
-          return res.status(400).json({ 
-            message: `${medal.toUpperCase()} medal is already assigned to another team for this event` 
-          });
-        }
-      }
+      // We've removed the unique medal validation to allow each team to win multiple medals
+      // This is because each team can have 3 representatives in an event
       
       // Get existing result or create new one
       const existingResult = await storage.getResultByTeamAndEvent(teamId, eventId);

@@ -87,6 +87,13 @@ export class MemStorage implements IStorage {
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000, // prune expired entries every 24h
     });
+    
+    // Reset all data collections
+    this._teams.clear();
+    this._categories.clear();
+    this._events.clear();
+    this._results.clear();
+    this._users.clear();
   }
   
   // User methods
@@ -272,12 +279,8 @@ export class MemStorage implements IStorage {
   
   // Initialize data
   async initializeData(): Promise<void> {
-    // Create admin user with hashed password
-    if (!(await this.getUserByUsername("admin"))) {
-      // For initial setup, use a plain password
-      // In a production environment, this would be hashed properly
-      await this.createUser({ username: "admin", password: "admin" });
-    }
+    // We've removed this part because we now create the admin user later in the function
+    // Admin user is created at the end of initializeData() with proper hashing
     
     // Create teams
     const teamData = [
@@ -336,6 +339,7 @@ export class MemStorage implements IStorage {
       
       // MUSICAL
       { name: "Instrumental Solo (Classical Guitar)", categoryId: categoryMap["MUSICAL"] },
+      { name: "Instrumental Solo (Acoustic)", categoryId: categoryMap["MUSICAL"] },
       { name: "Live Band", categoryId: categoryMap["MUSICAL"] },
       { name: "Vocal Solo (Kundiman)", categoryId: categoryMap["MUSICAL"] },
       { name: "Vocal Duet", categoryId: categoryMap["MUSICAL"] },
@@ -385,17 +389,48 @@ export class MemStorage implements IStorage {
     }
     
     // Create admin user if it doesn't exist
-    const adminUsername = "admin";
+    const adminUsername = "arcuadmin";
     const existingAdmin = await this.getUserByUsername(adminUsername);
     
     if (!existingAdmin) {
-      await this.createUser({
-        username: adminUsername,
-        password: "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447.f7d8805c1ea339b3f805dc1cfe3e077e", // "admin123"
-        email: "admin@example.com",
-        name: "Administrator"
-      });
-      console.log("Admin user created with username 'admin' and password 'admin123'");
+      try {
+        // Import the hashPassword function from auth-utils.ts
+        const { hashPassword } = await import('./auth-utils');
+        
+        const password = "ArCuAdmin2025";
+        const hashedPassword = await hashPassword(password);
+        
+        await this.createUser({
+          username: adminUsername,
+          password: hashedPassword,
+          email: "admin@ustp.edu.ph",
+          name: "ArCu Admin"
+        });
+        console.log("Admin user created with username 'arcuadmin'");
+      } catch (error) {
+        console.error("Failed to create admin user:", error);
+        
+        // Fallback to manual password hashing if import fails
+        const { scrypt } = await import('crypto');
+        const { promisify } = await import('util');
+        const { randomBytes } = await import('crypto');
+        
+        const scryptAsync = promisify(scrypt);
+        
+        // Create proper hash with random salt
+        const salt = randomBytes(16).toString("hex");
+        const password = "ArCuAdmin2025";
+        const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+        const hashedPassword = `${buf.toString("hex")}.${salt}`;
+        
+        await this.createUser({
+          username: adminUsername,
+          password: hashedPassword,
+          email: "admin@ustp.edu.ph",
+          name: "ArCu Admin"
+        });
+        console.log("Admin user created with username 'arcuadmin' (fallback method)");
+      }
     }
   }
 }

@@ -13,12 +13,20 @@ type AuthContextType = {
   isLoading: boolean;
   error: Error | null;
   loginMutation: UseMutationResult<User, Error, LoginData>;
+  registerMutation: UseMutationResult<User, Error, RegisterData>;
   logoutMutation: UseMutationResult<void, Error, void>;
 };
 
 type LoginData = {
   username: string;
   password: string;
+};
+
+type RegisterData = {
+  username: string;
+  password: string;
+  email: string;
+  name: string;
 };
 
 export const AuthContext = createContext<AuthContextType | null>(null);
@@ -55,6 +63,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
   });
 
+  const registerMutation = useMutation({
+    mutationFn: async (userData: RegisterData) => {
+      const res = await apiRequest("POST", "/api/register", userData);
+      return await res.json();
+    },
+    onSuccess: (user: User) => {
+      queryClient.setQueryData(["/api/user"], user);
+      toast({
+        title: "Registration successful",
+        description: "You have been registered and logged in",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Registration disabled",
+        description: "Registration is disabled. Please contact system administrator.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const logoutMutation = useMutation({
     mutationFn: async () => {
       await apiRequest("POST", "/api/logout");
@@ -82,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         loginMutation,
+        registerMutation,
         logoutMutation,
       }}
     >
