@@ -302,7 +302,7 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                                 onClick={() => toggleEvent(event.id)}
                                 className="px-3 py-1 h-8 text-xs"
                               >
-                                {expandedEvents[event.id] ? 'Hide Details' : 'View & Manage'}
+                                {expandedEvents[event.id] ? 'Hide Details' : 'View Details'}
                               </Button>
                             </div>
                           ) : (

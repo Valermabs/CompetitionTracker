@@ -291,7 +291,21 @@ export default function AdminPanel() {
       return;
     }
     
-    updateTeamIconMutation.mutate({ teamId: selectedTeamForIcon, icon: iconData });
+    updateTeamIconMutation.mutate(
+      { teamId: selectedTeamForIcon, icon: iconData },
+      {
+        onSuccess: () => {
+          // Make sure to invalidate the standings and teams queries to refresh the icons everywhere
+          queryClient.invalidateQueries({ queryKey: ["/api/standings"] });
+          queryClient.invalidateQueries({ queryKey: ["/api/teams"] });
+          
+          toast({
+            title: "Icon Updated",
+            description: "Team icon has been successfully updated and should appear in the scoreboard.",
+          });
+        }
+      }
+    );
   };
   
   // Function to add a new event
@@ -564,16 +578,29 @@ export default function AdminPanel() {
           {/* Settings Tab */}
           <TabsContent value="settings">
             <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-4">Results Visibility</h3>
+              <h3 className="text-lg font-semibold mb-4">Publication Control</h3>
               <div className="bg-gray-50 p-4 rounded-md">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-800">Publish Results to Viewers</h4>
+                    <h4 className="text-sm font-medium text-gray-800">Publish Updates to Viewers</h4>
                     <p className="text-xs text-gray-600 mt-1">
-                      When enabled, all score updates will be immediately visible to viewers. When disabled, results will be hidden until you publish them.
+                      <strong>Important:</strong> Viewers will always see the latest published scores. When you update scores and this setting is OFF, 
+                      viewers will continue to see the previous scores until you click "Publish Updates."
+                    </p>
+                    <p className="text-xs text-gray-600 mt-2">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-1">
+                        ON:
+                      </span>
+                      Every update is instantly visible to everyone
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-1">
+                        OFF:
+                      </span>
+                      Updates are held until you manually publish them 
                     </p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col items-end gap-4">
                     <div className="flex items-center">
                       <Switch 
                         id="publish-mode" 
@@ -581,16 +608,17 @@ export default function AdminPanel() {
                         onCheckedChange={handlePublishToggle}
                       />
                       <Label htmlFor="publish-mode" className="ml-2">
-                        {publicationStatus?.published ? 'Published' : 'Hidden'}
+                        {publicationStatus?.published ? 'Auto-publish ON' : 'Auto-publish OFF'}
                       </Label>
                     </div>
                     
                     <Button
                       onClick={handlePublishToggle}
                       variant={publicationStatus?.published ? "destructive" : "default"}
-                      className="px-4"
+                      className="w-full px-4 py-2 text-sm font-medium"
+                      size="lg"
                     >
-                      {publicationStatus?.published ? 'Hide Results' : 'Publish Results'}
+                      {publicationStatus?.published ? 'Disable Auto-publishing' : 'Publish All Updates'}
                     </Button>
                   </div>
                 </div>

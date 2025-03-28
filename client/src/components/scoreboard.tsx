@@ -32,8 +32,9 @@ export default function Scoreboard({ isAdmin = false }: ScoreboardProps) {
     refetchInterval: 2000, // Auto-refresh every 2 seconds
   });
   
-  // Determine if we should show the standings based on publication status and admin role
-  const showStandings = isAdmin || publicationStatus?.published;
+  // Always show standings - publication status only affects updates now
+  // Admin role is not needed for this logic anymore as we always show standings
+  const showStandings = true;
 
   if (isLoading) {
     return (

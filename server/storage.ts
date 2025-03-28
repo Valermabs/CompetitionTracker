@@ -238,14 +238,27 @@ export class MemStorage implements IStorage {
   }
   
   // Results publication setting
+  // This flag only controls whether new updates are published right away (true)
+  // or if we wait for an explicit "publish" action (false)
   private _resultsPublished: boolean = true;
+  // We'll keep track of when the last publish happened
+  private _lastPublishTime: number = Date.now();
   
   async setResultsPublished(publish: boolean): Promise<void> {
     this._resultsPublished = publish;
+    if (publish) {
+      // When explicitly publishing, update the last publish time to now
+      this._lastPublishTime = Date.now();
+    }
   }
   
   async getResultsPublished(): Promise<boolean> {
     return this._resultsPublished;
+  }
+  
+  // Get the last publish time (for timestamp-based filtering)
+  getLastPublishTime(): number {
+    return this._lastPublishTime;
   }
   
   // Computed data methods
