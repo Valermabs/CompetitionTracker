@@ -77,7 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // We've removed the unique medal validation to allow each team to win multiple medals
       // This is because each team can have 3 representatives in an event
       
-      // Get existing result or create new one
+      // Get existing result or create a new one
       const existingResult = await storage.getResultByTeamAndEvent(teamId, eventId);
       
       if (existingResult) {
@@ -100,7 +100,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           eventResults: updatedEventResults
         });
       } else {
-        return res.status(404).json({ message: "Result not found" });
+        // Create a new result entry - this allows multiple medals per team
+        const points = POINTS[medal as MedalType];
+        const newResult = await storage.createResult({
+          teamId,
+          eventId,
+          medal: medal as MedalType,
+          points
+        });
+        
+        // Get updated standings to reflect changes
+        const updatedStandings = await storage.getTeamStandings();
+        const updatedEventResults = await storage.getEventResults(eventId);
+        
+        return res.json({ 
+          message: "Result created successfully", 
+          result: newResult,
+          standings: updatedStandings,
+          eventResults: updatedEventResults
+        });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {

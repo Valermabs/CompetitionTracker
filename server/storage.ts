@@ -41,7 +41,7 @@ export interface IStorage {
   getResultByTeamAndEvent(teamId: number, eventId: number): Promise<Result | undefined>;
   getResultsByEvent(eventId: number): Promise<Result[]>;
   getResultsByTeam(teamId: number): Promise<Result[]>;
-  createResult(result: InsertResult): Promise<Result>;
+  cResulteateResult(result: InsertResult): Promise<Result>;
   updateResult(id: number, medal: MedalType, points: number): Promise<Result | undefined>;
   
   // Computed data methods
@@ -193,13 +193,13 @@ export class MemStorage implements IStorage {
     return Array.from(this._results.values()).filter(result => result.teamId === teamId);
   }
   
+  
   async createResult(insertResult: InsertResult): Promise<Result> {
     const id = this._resultIdCounter++;
     const result: Result = { ...insertResult, id };
     this._results.set(id, result);
     return result;
   }
-  
   async updateResult(id: number, medal: MedalType, points: number): Promise<Result | undefined> {
     const result = this._results.get(id);
     if (!result) return undefined;
@@ -244,9 +244,16 @@ export class MemStorage implements IStorage {
     const results = await this.getResultsByEvent(eventId);
     const teams = await this.getTeams();
     
-    const gold = results.find(r => r.medal === MEDALS.GOLD);
-    const silver = results.find(r => r.medal === MEDALS.SILVER);
-    const bronze = results.find(r => r.medal === MEDALS.BRONZE);
+    // Get all gold, silver, and bronze medals (there can be multiple for each)
+    const goldResults = results.filter(r => r.medal === MEDALS.GOLD);
+    const silverResults = results.filter(r => r.medal === MEDALS.SILVER);
+    const bronzeResults = results.filter(r => r.medal === MEDALS.BRONZE);
+    
+    // Just get the first one for the summary display
+    // The complete list is in the results array
+    const gold = goldResults.length > 0 ? goldResults[0] : undefined;
+    const silver = silverResults.length > 0 ? silverResults[0] : undefined;
+    const bronze = bronzeResults.length > 0 ? bronzeResults[0] : undefined;
     
     const goldTeam = gold ? teams.find(t => t.id === gold.teamId) : undefined;
     const silverTeam = silver ? teams.find(t => t.id === silver.teamId) : undefined;

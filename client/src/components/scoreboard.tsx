@@ -79,7 +79,9 @@ export default function Scoreboard() {
   // Helper function to render the team dot
   const getTeamLogo = (color: string) => {
     return (
-      <div className={`flex-shrink-0 h-6 w-6 rounded-full ${getTeamDotColor(color)}`}></div>
+      <div className="flex-shrink-0 h-8 w-8 rounded-full bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+        <div className={`h-6 w-6 rounded-full ${getTeamDotColor(color)}`}></div>
+      </div>
     );
   };
 

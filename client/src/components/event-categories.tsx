@@ -297,7 +297,9 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                                   return (
                                     <div key={team.id} className="flex flex-col space-y-1 p-2 border rounded">
                                       <div className="flex items-center space-x-1">
-                                        <div className={`w-3 h-3 rounded-full ${getTeamDotColor(team.color)}`}></div>
+                                        <div className="w-4 h-4 rounded-full flex items-center justify-center border border-gray-200 overflow-hidden">
+                                          <div className={`w-3 h-3 rounded-full ${getTeamDotColor(team.color)}`}></div>
+                                        </div>
                                         <span className="font-medium">{team.name}</span>
                                       </div>
                                       <div className="flex justify-between items-center">
