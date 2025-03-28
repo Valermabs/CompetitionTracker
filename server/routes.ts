@@ -36,8 +36,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!isAdmin) {
       const published = await storage.getResultsPublished();
       if (!published) {
-        // If not published and not admin, return a message indicating that scores are not yet available
-        return res.status(403).json({ message: "Scores are not currently published" });
+        // If not published and not admin, return all teams with zero scores
+        const teams = await storage.getTeams();
+        const zeroScoreStandings = teams.map(team => ({
+          teamId: team.id,
+          teamName: team.name,
+          teamColor: team.color,
+          icon: team.icon,
+          totalPoints: 0,
+          goldCount: 0,
+          silverCount: 0,
+          bronzeCount: 0
+        }));
+        return res.json(zeroScoreStandings);
       }
     }
     
@@ -61,8 +72,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (!isAdmin) {
       const published = await storage.getResultsPublished();
       if (!published) {
-        // If not published and not admin, return a message indicating that results are not yet available
-        return res.status(403).json({ message: "Results are not currently published" });
+        // If not published and not admin, return empty results
+        const teams = await storage.getTeams();
+        return res.json({
+          eventId: eventResults.eventId,
+          eventName: eventResults.eventName,
+          gold: undefined,
+          silver: undefined,
+          bronze: undefined,
+          results: [] // Empty results
+        });
       }
     }
 
