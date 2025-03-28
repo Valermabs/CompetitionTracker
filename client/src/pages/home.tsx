@@ -51,7 +51,7 @@ export default function Home() {
           </Alert>
         )}
         
-        <Scoreboard />
+        <Scoreboard isAdmin={isAdmin} />
         
         {isAdmin && <AdminPanel />}
         

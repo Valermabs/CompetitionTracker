@@ -296,30 +296,14 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                           
                           {isAdmin ? (
                             <div className="admin-controls">
-                              <div className="flex items-center space-x-2">
-                                <Select 
-                                  onValueChange={(value) => teams?.[0]?.id && handleMedalChange(event.id, teams[0].id, value)}
-                                  value={teams?.[0]?.id ? selectedMedals[`${event.id}-${teams[0].id}`] : undefined}
-                                >
-                                  <SelectTrigger className="w-[180px]">
-                                    <SelectValue placeholder="Select medal" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {MEDAL_OPTIONS.map(option => (
-                                      <SelectItem key={option.value} value={option.value}>
-                                        {option.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <Button 
-                                  size="sm"
-                                  onClick={() => teams && handleUpdateScore(event.id, teams[0].id)}
-                                  disabled={!teams || !selectedMedals[`${event.id}-${teams[0].id}`] || updateScoreMutation.isPending}
-                                >
-                                  Update
-                                </Button>
-                              </div>
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => toggleEvent(event.id)}
+                                className="px-3 py-1 h-8 text-xs"
+                              >
+                                {expandedEvents[event.id] ? 'Hide Details' : 'View & Manage'}
+                              </Button>
                             </div>
                           ) : (
                             <div className="medal-display flex items-center space-x-2">
@@ -414,17 +398,6 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                               </div>
                             </div>
                           </div>
-                        )}
-                        
-                        {isAdmin && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="mt-1 h-6 text-xs"
-                            onClick={() => toggleEvent(event.id)}
-                          >
-                            {expandedEvents[event.id] ? 'Hide Teams' : 'Show Teams'}
-                          </Button>
                         )}
                       </li>
                     );

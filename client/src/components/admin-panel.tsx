@@ -3,6 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { MEDAL_OPTIONS } from "@/lib/constants";
 import { useToast } from "@/hooks/use-toast";
+import { EventMedalList } from "./event-medal-list";
+
+
 import {
   Card,
   CardContent,
@@ -46,10 +49,12 @@ export default function AdminPanel() {
   const [newEventName, setNewEventName] = useState<string>("");
   const [newEventCategory, setNewEventCategory] = useState<string>("");
   
+  // Get categories with events
   const { data: categoriesWithEvents } = useQuery({
     queryKey: ["/api/categories"],
   });
   
+  // Get all teams
   const { data: teams } = useQuery({
     queryKey: ["/api/teams"],
   });
@@ -58,6 +63,9 @@ export default function AdminPanel() {
   const { data: publicationStatus } = useQuery<{ published: boolean }>({
     queryKey: ["/api/results/published"],
   });
+  
+  // We'll use this state variable for the Medal Management Tab
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -316,6 +324,7 @@ export default function AdminPanel() {
         <Tabs defaultValue="score" className="mb-6">
           <TabsList className="mb-4">
             <TabsTrigger value="score">Score Management</TabsTrigger>
+            <TabsTrigger value="medals">Medal Management</TabsTrigger>
             <TabsTrigger value="teams">Team Icons</TabsTrigger>
             <TabsTrigger value="events">Add Events</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
@@ -398,15 +407,7 @@ export default function AdminPanel() {
               </div>
             </div>
             
-            {/* Medal Removal Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">Remove Medals</h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <p className="text-sm text-gray-600 mb-4">
-                  If you need to remove a medal that was assigned incorrectly, go to the Event Categories section and click the "Remove" button next to the medal.
-                </p>
-              </div>
-            </div>
+
             
             <div className="mt-8">
               <h3 className="text-lg font-semibold mb-4">Medal Validation</h3>
@@ -422,6 +423,39 @@ export default function AdminPanel() {
                     <AlertDescription>{validationMessage}</AlertDescription>
                   </Alert>
                 )}
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Medal Management Tab */}
+          <TabsContent value="medals">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-4">Manage Team Medals</h3>
+              
+              <p className="text-sm text-gray-600 mb-4">
+                This panel allows you to view and remove medals assigned to teams across all events. 
+                To assign medals, use the Score Management tab.
+              </p>
+              
+              <div className="space-y-8">
+                {categoriesWithEvents?.map(({ category, events }) => (
+                  <div key={category.id} className="border rounded-md overflow-hidden">
+                    <div className="bg-gray-50 p-3 border-b">
+                      <h4 className="font-medium text-gray-800">{category.name}</h4>
+                    </div>
+                    <div className="p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {events.map(event => (
+                          <div key={event.id} className="border rounded-md p-3">
+                            <h5 className="font-medium text-gray-700 mb-3">{event.name}</h5>
+                            {/* We use the EventMedalList component here to avoid hook issues */}
+                            <EventMedalList eventId={event.id} />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </TabsContent>

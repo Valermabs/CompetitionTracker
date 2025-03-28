@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getTeamDotColor } from "@/lib/utils";
+import { Lock } from "lucide-react";
 
 // Define team standing type
 interface TeamStanding {
@@ -12,12 +13,25 @@ interface TeamStanding {
   goldCount: number;
   silverCount: number;
   bronzeCount: number;
+  icon?: string | null;
 }
 
-export default function Scoreboard() {
+interface ScoreboardProps {
+  isAdmin?: boolean;
+}
+
+export default function Scoreboard({ isAdmin = false }: ScoreboardProps) {
   const { data: standings, isLoading } = useQuery<TeamStanding[]>({
     queryKey: ["/api/standings"],
   });
+  
+  // Query to check if results are published
+  const { data: publicationStatus } = useQuery<{ published: boolean }>({
+    queryKey: ["/api/results/published"],
+  });
+  
+  // Determine if we should show the standings based on publication status and admin role
+  const showStandings = isAdmin || publicationStatus?.published;
 
   if (isLoading) {
     return (
@@ -92,39 +106,60 @@ export default function Scoreboard() {
           <CardTitle className="text-xl font-bold text-gray-800">Current Standings</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Points</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gold</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Silver</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bronze</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {standings?.map((team, index) => (
-                  <tr key={team.teamId} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        {getTeamLogo(team.teamColor)}
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{team.teamName}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{team.totalPoints}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.goldCount}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.silverCount}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.bronzeCount}</td>
+          {showStandings ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Points</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gold</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Silver</th>
+                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bronze</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {standings?.map((team, index) => (
+                    <tr key={team.teamId} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          {team.icon ? (
+                            <div className="flex-shrink-0 h-8 w-8 rounded-full border border-gray-200 overflow-hidden">
+                              <img src={team.icon} alt={`${team.teamName} logo`} className="h-full w-full object-cover" />
+                            </div>
+                          ) : (
+                            getTeamLogo(team.teamColor)
+                          )}
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">{team.teamName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">{team.totalPoints}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.goldCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.silverCount}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{team.bronzeCount}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Lock className="h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Results are currently hidden</h3>
+              <p className="text-sm text-gray-500 max-w-md">
+                The administrator has not yet published the current standings. Check back later when results are published.
+              </p>
+              {isAdmin && (
+                <p className="text-sm text-blue-600 mt-4">
+                  As an administrator, you can publish results in the Settings tab of the Admin Control Panel.
+                </p>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </section>
