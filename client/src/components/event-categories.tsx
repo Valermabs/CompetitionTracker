@@ -4,11 +4,11 @@ import {
   getCategoryBgClass, 
   getCategoryTextClass,
   getMedalClass,
-  getTeamDotColor,
-  formatMedalName
+  formatMedalName,
+  getTeamDotColor
 } from "@/lib/utils";
 import { apiRequest } from "@/lib/queryClient";
-import { MEDAL_OPTIONS } from "@/lib/constants";
+import { MEDAL_OPTIONS, TEAM_COLORS } from "@/lib/constants";
 import { 
   Card, 
   CardContent, 
@@ -91,6 +91,7 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
     if (!categoriesWithEvents || !expandedCategories) return;
     
     async function fetchEventResults() {
+      if (!categoriesWithEvents) return;
       for (const { events } of categoriesWithEvents) {
         for (const event of events) {
           try {
@@ -158,7 +159,9 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
     }));
   };
   
-  const handleMedalChange = (eventId: number, teamId: number, value: string) => {
+  const handleMedalChange = (eventId: number, teamId: number | undefined, value: string) => {
+    if (teamId === undefined) return;
+    
     setSelectedMedals(prev => ({
       ...prev,
       [`${eventId}-${teamId}`]: value
@@ -240,8 +243,8 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                             <div className="admin-controls">
                               <div className="flex items-center space-x-2">
                                 <Select 
-                                  onValueChange={(value) => handleMedalChange(event.id, teams?.[0]?.id, value)}
-                                  value={selectedMedals[`${event.id}-${teams?.[0]?.id}`]}
+                                  onValueChange={(value) => teams?.[0]?.id && handleMedalChange(event.id, teams[0].id, value)}
+                                  value={teams?.[0]?.id ? selectedMedals[`${event.id}-${teams[0].id}`] : undefined}
                                 >
                                   <SelectTrigger className="w-[180px]">
                                     <SelectValue placeholder="Select medal" />
@@ -294,7 +297,7 @@ export default function EventCategories({ isAdmin }: EventCategoriesProps) {
                                   return (
                                     <div key={team.id} className="flex flex-col space-y-1 p-2 border rounded">
                                       <div className="flex items-center space-x-1">
-                                        <div className={`w-2 h-2 rounded-full ${getTeamDotColor(team.color)}`}></div>
+                                        <div className={`w-3 h-3 rounded-full ${getTeamDotColor(team.color)}`}></div>
                                         <span className="font-medium">{team.name}</span>
                                       </div>
                                       <div className="flex justify-between items-center">

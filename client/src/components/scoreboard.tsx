@@ -1,10 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTeamDotColor } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getTeamDotColor } from "@/lib/utils";
+
+// Define team standing type
+interface TeamStanding {
+  teamId: number;
+  teamName: string;
+  teamColor: string;
+  totalPoints: number;
+  goldCount: number;
+  silverCount: number;
+  bronzeCount: number;
+}
 
 export default function Scoreboard() {
-  const { data: standings, isLoading } = useQuery({
+  const { data: standings, isLoading } = useQuery<TeamStanding[]>({
     queryKey: ["/api/standings"],
   });
 
@@ -65,6 +76,13 @@ export default function Scoreboard() {
     );
   }
 
+  // Helper function to render the team dot
+  const getTeamLogo = (color: string) => {
+    return (
+      <div className={`flex-shrink-0 h-6 w-6 rounded-full ${getTeamDotColor(color)}`}></div>
+    );
+  };
+
   return (
     <section className="mb-10">
       <Card>
@@ -90,7 +108,7 @@ export default function Scoreboard() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{index + 1}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className={`flex-shrink-0 h-8 w-8 rounded-full ${getTeamDotColor(team.teamColor)}`}></div>
+                        {getTeamLogo(team.teamColor)}
                         <div className="ml-4">
                           <div className="text-sm font-medium text-gray-900">{team.teamName}</div>
                         </div>
