@@ -30,6 +30,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get team standings
   app.get("/api/standings", async (req: Request, res: Response) => {
     const standings = await storage.getTeamStandings();
+    
+    // Only show updated standings to admin users or if results are published
+    const isAdmin = req.isAuthenticated();
+    if (!isAdmin) {
+      const published = await storage.getResultsPublished();
+      if (!published) {
+        // If not published and not admin, return a message indicating that scores are not yet available
+        return res.status(403).json({ message: "Scores are not currently published" });
+      }
+    }
+    
     return res.json(standings);
   });
 
@@ -43,6 +54,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const eventResults = await storage.getEventResults(eventId);
     if (!eventResults) {
       return res.status(404).json({ message: "Event not found" });
+    }
+    
+    // Only show updated results to admin users or if results are published
+    const isAdmin = req.isAuthenticated();
+    if (!isAdmin) {
+      const published = await storage.getResultsPublished();
+      if (!published) {
+        // If not published and not admin, return a message indicating that results are not yet available
+        return res.status(403).json({ message: "Results are not currently published" });
+      }
     }
 
     return res.json(eventResults);

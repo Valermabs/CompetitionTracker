@@ -238,9 +238,9 @@ export class MemStorage implements IStorage {
   }
   
   // Results publication setting
-  // This flag only controls whether new updates are published right away (true)
-  // or if we wait for an explicit "publish" action (false)
-  private _resultsPublished: boolean = true;
+  // This flag controls whether results are visible to non-admin users (true)
+  // or if they are hidden until explicitly published (false)
+  private _resultsPublished: boolean = false;
   // We'll keep track of when the last publish happened
   private _lastPublishTime: number = Date.now();
   
@@ -278,6 +278,7 @@ export class MemStorage implements IStorage {
         teamId: team.id,
         teamName: team.name,
         teamColor: team.color,
+        icon: team.icon,
         totalPoints,
         goldCount,
         silverCount,

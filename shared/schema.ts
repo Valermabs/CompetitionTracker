@@ -92,6 +92,7 @@ export type TeamStanding = {
   teamId: number;
   teamName: string;
   teamColor: string;
+  icon?: string | null;
   totalPoints: number;
   goldCount: number;
   silverCount: number;
