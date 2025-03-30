@@ -15,12 +15,13 @@ declare global {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "2025-ustp-claveria-arcu-days",
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     store: storage.sessionStore,
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       secure: process.env.NODE_ENV === "production",
+      sameSite: 'lax'
     }
   };
 
@@ -38,6 +39,7 @@ export function setupAuth(app: Express) {
           return done(null, user);
         }
       } catch (error) {
+        console.error('Authentication error:', error);
         return done(error);
       }
     }),
