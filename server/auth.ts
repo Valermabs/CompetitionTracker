@@ -15,14 +15,16 @@ declare global {
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "2025-ustp-claveria-arcu-days",
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     store: storage.sessionStore,
+    name: 'session',
     cookie: {
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       sameSite: 'lax',
-      path: '/'
+      path: '/',
+      httpOnly: true
     }
   };
 
